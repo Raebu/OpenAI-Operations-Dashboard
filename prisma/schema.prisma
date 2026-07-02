@@ -1,0 +1,136 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EventStatus {
+  success
+  error
+  blocked
+  timeout
+  reviewed
+}
+
+enum ReviewStatus {
+  pending
+  approved
+  rejected
+  escalated
+  remediated
+}
+
+model Organisation {
+  id        String   @id
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  applications Application[]
+  apiKeys      ApiKey[]
+  aiEvents     AiEvent[]
+  auditLogs    AuditLog[]
+  reviews      HumanReview[]
+}
+
+model Application {
+  id             String       @id @default(cuid())
+  organisationId String
+  name           String
+  owner          String?
+  environment    String       @default("production")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@unique([organisationId, name, environment])
+}
+
+model ApiKey {
+  id             String       @id @default(cuid())
+  organisationId String
+  name           String
+  keyHash        String       @unique
+  lastUsedAt     DateTime?
+  active         Boolean      @default(true)
+  createdAt      DateTime     @default(now())
+  organisation   Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+}
+
+model AiEvent {
+  id                String       @id @default(cuid())
+  organisationId    String
+  application       String
+  environment       String       @default("production")
+  provider          String
+  model             String
+  promptName        String
+  promptVersion     String?
+  userId            String?
+  requestId         String?
+  inputTokens       Int          @default(0)
+  outputTokens      Int          @default(0)
+  cachedTokens      Int          @default(0)
+  reasoningTokens   Int          @default(0)
+  estimatedCostUsd  Decimal      @default(0) @db.Decimal(12, 6)
+  latencyMs         Int
+  status            EventStatus
+  errorCode         String?
+  safetyFlagged     Boolean      @default(false)
+  safetyCategories  String[]
+  hallucinationRisk Float?
+  groundedness      Float?
+  citationCoverage  Float?
+  promptPreview     String?
+  responsePreview   String?
+  metadata          Json?
+  createdAt         DateTime     @default(now())
+
+  organisation Organisation  @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  reviews      HumanReview[]
+
+  @@index([organisationId, createdAt])
+  @@index([organisationId, model])
+  @@index([organisationId, application])
+  @@index([organisationId, status])
+  @@index([organisationId, safetyFlagged])
+}
+
+model HumanReview {
+  id             String       @id @default(cuid())
+  organisationId String
+  aiEventId      String
+  status         ReviewStatus @default(pending)
+  severity       String       @default("medium")
+  reviewer       String?
+  notes          String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+  aiEvent      AiEvent      @relation(fields: [aiEventId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, status])
+}
+
+model AuditLog {
+  id             String       @id @default(cuid())
+  organisationId String
+  actor          String
+  action         String
+  targetType     String
+  targetId       String?
+  ipAddress      String?
+  userAgent      String?
+  metadata       Json?
+  createdAt      DateTime     @default(now())
+
+  organisation Organisation @relation(fields: [organisationId], references: [id], onDelete: Cascade)
+
+  @@index([organisationId, createdAt])
+  @@index([organisationId, action])
+}

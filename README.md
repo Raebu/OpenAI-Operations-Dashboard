@@ -87,7 +87,6 @@ app/                    Next.js pages and API routes
 components/             Dashboard UI components
 lib/                    Auth, pricing, metrics, database, validation
 prisma/                 Database schema and seed data
-scripts/                Utility scripts
 docs/                   Architecture, governance, deployment, API docs
 .github/workflows/      CI pipeline
 ```
@@ -104,4 +103,4 @@ docs/                   Architecture, governance, deployment, API docs
 
 ## Licence
 
-MIT. See [LICENSE](./LICENSE).
+Apache-2.0. See [LICENSE](./LICENSE).

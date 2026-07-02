@@ -1,18 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { isValidIngestKey } from '@/lib/auth';
+import { logger } from '@/lib/logger';
 import { estimateCostUsd } from '@/lib/pricing';
+import { checkRateLimit } from '@/lib/rate-limit';
 import { ingestEventSchema } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
+  const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+  const rateLimit = checkRateLimit(`ingest:${ipAddress}`);
+
+  if (!rateLimit.allowed) {
+    logger.warn('ingest.rate_limited', { ipAddress });
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+  }
+
   const apiKey = request.headers.get('x-api-key');
   if (!isValidIngestKey(apiKey)) {
+    logger.warn('ingest.unauthorised', { ipAddress });
     return NextResponse.json({ error: 'Invalid or missing API key' }, { status: 401 });
   }
 
   const json = await request.json().catch(() => null);
   const parsed = ingestEventSchema.safeParse(json);
   if (!parsed.success) {
+    logger.warn('ingest.invalid_payload', { ipAddress });
     return NextResponse.json({ error: 'Invalid payload', details: parsed.error.flatten() }, { status: 400 });
   }
 
@@ -94,11 +106,12 @@ export async function POST(request: NextRequest) {
       action: 'ai_event.ingested',
       targetType: 'AiEvent',
       targetId: event.id,
-      ipAddress: request.headers.get('x-forwarded-for') ?? undefined,
+      ipAddress,
       userAgent: request.headers.get('user-agent') ?? undefined,
       metadata: { application: input.application, model: input.model, status: input.status }
     }
   });
 
+  logger.info('ingest.created', { organisationId: input.organisationId, eventId: event.id, model: input.model });
   return NextResponse.json({ id: event.id, estimatedCostUsd }, { status: 201 });
 }

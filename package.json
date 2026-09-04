@@ -31,7 +31,7 @@
     "prisma": "5.22.0",
     "react": "19.1.1",
     "react-dom": "19.1.1",
-    "recharts": "2.13.3",
+    "recharts": "3.2.1",
     "tailwind-merge": "2.5.4",
     "zod": "3.23.8"
   },

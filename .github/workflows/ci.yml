@@ -16,7 +16,7 @@ concurrency:
 jobs:
   quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 25
     services:
       postgres:
         image: postgres:16-alpine
@@ -27,7 +27,7 @@ jobs:
         ports:
           - 5432:5432
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U openaiops -d openaiops"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -42,11 +42,71 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
-      - run: npm audit --audit-level=high
-      - run: npx prisma generate
-      - run: npm run lint
-      - run: npm run typecheck
-      - run: npm run test
-      - run: npm run build
-      - run: docker build -t openai-operations-dashboard:ci .
+
+      - id: install
+        name: Install dependencies
+        run: npm ci
+
+      - id: audit
+        name: Dependency audit
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm audit --audit-level=high
+
+      - id: prisma
+        name: Generate Prisma client
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npx prisma generate
+
+      - id: lint
+        name: Lint
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run lint
+
+      - id: typecheck
+        name: Typecheck
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run typecheck
+
+      - id: test
+        name: Test
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run test
+
+      - id: build
+        name: Build
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: npm run build
+
+      - id: container
+        name: Build container
+        if: steps.install.outcome == 'success'
+        continue-on-error: true
+        run: docker build -t openai-operations-dashboard:ci .
+
+      - name: Enforce all quality gates
+        if: always()
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          AUDIT: ${{ steps.audit.outcome }}
+          PRISMA: ${{ steps.prisma.outcome }}
+          LINT: ${{ steps.lint.outcome }}
+          TYPECHECK: ${{ steps.typecheck.outcome }}
+          TEST: ${{ steps.test.outcome }}
+          BUILD: ${{ steps.build.outcome }}
+          CONTAINER: ${{ steps.container.outcome }}
+        run: |
+          printf '%s\n' "install=$INSTALL audit=$AUDIT prisma=$PRISMA lint=$LINT typecheck=$TYPECHECK test=$TEST build=$BUILD container=$CONTAINER"
+          test "$INSTALL" = success
+          test "$AUDIT" = success
+          test "$PRISMA" = success
+          test "$LINT" = success
+          test "$TYPECHECK" = success
+          test "$TEST" = success
+          test "$BUILD" = success
+          test "$CONTAINER" = success

@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { isValidIngestKey } from '@/lib/auth';
@@ -96,6 +97,8 @@ export async function POST(request: NextRequest) {
       promptPreview: input.promptPreview,
       responsePreview: input.responsePreview,
       metadata: input.metadata
+        ? (JSON.parse(JSON.stringify(input.metadata)) as Prisma.InputJsonValue)
+        : undefined
     }
   });
 

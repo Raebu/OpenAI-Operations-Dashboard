@@ -1,5 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { ingestEventSchema } from '@/lib/validation';
+
+afterEach(() => {
+  delete process.env.TELEMETRY_PREVIEWS_ENABLED;
+});
 
 describe('ingestEventSchema', () => {
   it('accepts a valid AI event payload', () => {
@@ -32,5 +36,38 @@ describe('ingestEventSchema', () => {
     });
 
     expect(result.success).toBe(false);
+  });
+
+  it('drops telemetry previews unless explicitly enabled', () => {
+    const result = ingestEventSchema.parse({
+      organisationId: 'org_demo',
+      application: 'copilot',
+      model: 'gpt-4.1',
+      promptName: 'test',
+      latencyMs: 50,
+      status: 'success',
+      promptPreview: 'secret@example.com',
+      responsePreview: 'sk-example1234567890123456'
+    });
+
+    expect(result.promptPreview).toBeUndefined();
+    expect(result.responsePreview).toBeUndefined();
+  });
+
+  it('redacts common sensitive data when previews are enabled', () => {
+    process.env.TELEMETRY_PREVIEWS_ENABLED = 'true';
+    const result = ingestEventSchema.parse({
+      organisationId: 'org_demo',
+      application: 'copilot',
+      model: 'gpt-4.1',
+      promptName: 'test',
+      latencyMs: 50,
+      status: 'success',
+      promptPreview: 'Contact person@example.com with sk-abcdefghijklmnop1234'
+    });
+
+    expect(result.promptPreview).toContain('[redacted-email]');
+    expect(result.promptPreview).toContain('[redacted-key]');
+    expect(result.promptPreview).not.toContain('person@example.com');
   });
 });

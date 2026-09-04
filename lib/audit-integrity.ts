@@ -1,6 +1,6 @@
 import crypto from 'node:crypto';
 
-export function canonicalJson(value: unknown) {
+export function canonicalJson(value: unknown): string {
   if (Array.isArray(value)) return `[${value.map(canonicalJson).join(',')}]`;
   if (value && typeof value === 'object') {
     return `{${Object.entries(value as Record<string, unknown>)
@@ -8,9 +8,10 @@ export function canonicalJson(value: unknown) {
       .map(([key, item]) => `${JSON.stringify(key)}:${canonicalJson(item)}`)
       .join(',')}}`;
   }
-  return JSON.stringify(value);
+  const encoded = JSON.stringify(value);
+  return encoded === undefined ? 'null' : encoded;
 }
 
-export function auditDigest(value: unknown) {
+export function auditDigest(value: unknown): string {
   return crypto.createHash('sha256').update(canonicalJson(value)).digest('hex');
 }

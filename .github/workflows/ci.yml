@@ -6,9 +6,17 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: postgres:16-alpine
@@ -27,12 +35,15 @@ jobs:
       DATABASE_URL: postgresql://openaiops:openaiops@localhost:5432/openaiops?schema=public
       NEXTAUTH_SECRET: ci-secret
       INGEST_API_KEYS: dev_ingest_key
+      ALLOW_IN_MEMORY_RATE_LIMIT: 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: 22
-      - run: npm install
+          cache: npm
+      - run: npm ci
+      - run: npm audit --audit-level=high
       - run: npx prisma generate
       - run: npm run lint
       - run: npm run typecheck

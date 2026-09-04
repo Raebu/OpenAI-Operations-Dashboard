@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
@@ -38,20 +38,10 @@ jobs:
       ALLOW_IN_MEMORY_RATE_LIMIT: 'true'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          ref: ${{ github.head_ref || github.ref_name }}
       - uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f
         with:
           node-version: 22
-      - name: Generate and commit deterministic lockfile
-        if: ${{ hashFiles('package-lock.json') == '' }}
-        run: |
-          npm install --package-lock-only --ignore-scripts --no-audit
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add package-lock.json
-          git commit -m 'Add deterministic npm lockfile'
-          git push origin HEAD:${{ github.head_ref || github.ref_name }}
+          cache: npm
       - run: npm ci
       - run: npm audit --audit-level=high
       - run: npx prisma generate

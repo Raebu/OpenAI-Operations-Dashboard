@@ -47,7 +47,7 @@ jobs:
       - name: Refresh deterministic lockfile
         run: |
           rm -f package-lock.json
-          npm install --package-lock-only --ignore-scripts --no-audit
+          npx --yes npm@12.0.2 install --package-lock-only --ignore-scripts --no-audit
           if ! git diff --quiet -- package-lock.json; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -58,13 +58,13 @@ jobs:
 
       - id: install
         name: Install dependencies
-        run: npm ci
+        run: npx --yes npm@12.0.2 ci
 
       - id: audit
         name: Dependency audit
         if: steps.install.outcome == 'success'
         continue-on-error: true
-        run: npm audit --audit-level=high
+        run: npx --yes npm@12.0.2 audit --audit-level=high
 
       - id: prisma
         name: Generate Prisma client

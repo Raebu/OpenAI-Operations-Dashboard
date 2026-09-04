@@ -8,7 +8,17 @@ import { ingestEventSchema } from '@/lib/validation';
 
 export async function POST(request: NextRequest) {
   const ipAddress = request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
-  const rateLimit = checkRateLimit(`ingest:${ipAddress}`);
+
+  let rateLimit;
+  try {
+    rateLimit = await checkRateLimit(`ingest:${ipAddress}`);
+  } catch (error) {
+    logger.error('ingest.rate_limit_unavailable', {
+      ipAddress,
+      reason: error instanceof Error ? error.message : 'unknown'
+    });
+    return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 });
+  }
 
   if (!rateLimit.allowed) {
     logger.warn('ingest.rate_limited', { ipAddress });

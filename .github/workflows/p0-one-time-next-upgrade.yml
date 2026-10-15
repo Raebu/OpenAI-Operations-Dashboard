@@ -50,7 +50,7 @@ jobs:
       - name: Commit only verified application dependencies and remove temporary helper
         run: |
           git rm .github/workflows/p0-one-time-next-upgrade.yml
-          git add package.json package-lock.json eslint.config.mjs app/api/v1/events/route.ts
+          git add package.json package-lock.json eslint.config.mjs app/api/v1/events/route.ts app/page.tsx
           git diff --cached --check
           git -c user.name='github-actions[bot]' -c user.email='41898282+github-actions[bot]@users.noreply.github.com' commit -m 'fix(security): upgrade framework and lock dependencies'
           git push origin HEAD:fix/p0-next-modernize-lockfile-20261015

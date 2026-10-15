@@ -38,7 +38,7 @@ jobs:
           node-version: '22.23.2'
       - name: Install compatible patched framework and React; create deterministic lockfile
         run: |
-          node -e 'const fs=require("node:fs");const p=JSON.parse(fs.readFileSync("package.json","utf8"));Object.assign(p.dependencies,{next:"16.4.1",react:"19.3.0","react-dom":"19.3.0","next-auth":"5.0.0-beta.32",recharts:"3.10.1","react-is":"19.3.0"});Object.assign(p.devDependencies,{"eslint-config-next":"16.4.1","@types/react":"19.3.0","@types/react-dom":"19.3.0","@testing-library/react":"16.3.0"});fs.writeFileSync("package.json",JSON.stringify(p,null,2)+"\\n");'
+          node -e 'const fs=require("node:fs");const p=JSON.parse(fs.readFileSync("package.json","utf8"));Object.assign(p.dependencies,{next:"16.4.1",react:"19.3.0","react-dom":"19.3.0","next-auth":"5.0.0-beta.32",recharts:"3.10.1","react-is":"19.3.0"});Object.assign(p.devDependencies,{"eslint-config-next":"16.4.1","@types/react":"19.3.0","@types/react-dom":"19.3.0","@testing-library/react":"16.3.0"});fs.writeFileSync("package.json",JSON.stringify(p,null,2));'
           npm install --package-lock-only --ignore-scripts --no-audit --no-fund
           npm ci --ignore-scripts --no-audit --no-fund
           npm audit --omit=dev --audit-level=high

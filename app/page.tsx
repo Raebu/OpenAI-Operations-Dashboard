@@ -3,6 +3,9 @@ import { StatCard } from '@/components/stat-card';
 import { ModelUsageChart, SpendChart } from '@/components/dashboard-charts';
 import { getDashboardMetrics } from '@/lib/metrics';
 
+// Dashboard metrics require a live database and must never be prerendered at build time.
+export const dynamic = 'force-dynamic';
+
 function pct(value: number) {
   return `${(value * 100).toFixed(1)}%`;
 }
